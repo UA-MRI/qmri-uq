@@ -142,21 +142,43 @@ Both solvers accept a dictionary structure `D` containing signal atoms and a loo
 
 We provide a Python translation of the simulation pipeline to ensure cross-platform reproducibility. There may be some small discrepancies in results due to implementation differences, but overall the two versions provide similar results
 
-### 1. Prerequisites
-Ensure you have [Miniconda](https://docs.conda.io/en/latest/miniconda.html) installed.
+1. Prerequisites
 
-### 2. Setup Environment
+Ensure you have Miniconda or an equivalent Python environment installed.
+2. Setup Environment
+
 Navigate to the repository root and create the environment:
+Bash
 
-```bash
 conda env create -f environment.yml
 conda activate mri_uq
 
-3. Running the Simulation
+3. Usage
 
-To run the T2 mapping numerical simulation:
+All scripts should be run from the python_src directory or ensure that directory is in your PYTHONPATH.
+Numerical Simulations
+
+Reproduces the Monte Carlo simulations (similar to Figure 2).
 Bash
 
-python run_simulation.py
+python python_src/run_simulation.py
 
-Results will be saved in python_output/. The script automatically detects the data in the existing data/ folder (assuming you have already downloaded or generated the MATLAB data files).
+    Output: Statistics and plots saved to python_output/simulation_results/.
+
+T2 Phantom Validation
+
+Runs the validation on T2 phantom data across 8192, 384, and 192 views.
+Bash
+
+python python_src/run_phantom_t2.py
+
+    Output: T2 maps, Uncertainty maps, and correlation plots saved to python_output/phantom_t2_results/.
+
+T1 Phantom Validation
+
+Runs the validation on T1 phantom data (1-Meas LLR vs 16-Meas NUFFT) with retrospective acceleration.
+Bash
+
+python python_src/run_phantom_t1.py
+
+    Output: T1 maps, Uncertainty maps, and correlation plots saved to python_output/phantom_t1_results/.
