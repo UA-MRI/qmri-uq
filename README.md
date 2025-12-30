@@ -31,7 +31,12 @@ The repository is organized as follows:
 │   └── qmri_cmaps/             # Colormap utilities
 │       └── relaxationColorMap.m
 │
-└── output/                     # Generated results (created automatically)
+├── matlab_output/                     # MATLAB Generated results (created automatically)
+│   ├── simulation_results/
+│   ├── phantom_t1_results/
+│   └── phantom_t2_results/
+│
+└── python_output/                     # python Generated results (created automatically)
     ├── simulation_results/
     ├── phantom_t1_results/
     └── phantom_t2_results/
@@ -127,7 +132,7 @@ Both solvers accept a dictionary structure `D` containing signal atoms and a loo
 
 ## Python Implementation
 
-We provide a Python translation of the simulation pipeline to ensure cross-platform reproducibility.
+We provide a Python translation of the simulation pipeline to ensure cross-platform reproducibility. There may be some small discrepancies in results due to implementation differences, but overall the two versions provide similar results
 
 ### 1. Prerequisites
 Ensure you have [Miniconda](https://docs.conda.io/en/latest/miniconda.html) installed.
