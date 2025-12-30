@@ -206,6 +206,3 @@ python python_src/run_phantom_t1.py
 
 * **Output:** T1 maps, Uncertainty maps, and correlation plots saved to `python_output/phantom_t1_results/`.
 
-```
-
-```
