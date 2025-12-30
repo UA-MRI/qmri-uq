@@ -12,6 +12,7 @@ The repository is organized as follows:
 .
 ├── data/                       # Input data (must be populated with .mat files)
 │   ├── simulation_phantom/     # Data for numerical simulations (header, contrast)
+│   ├── colormaps/     		# saved custom colormaps
 │   ├── phantom_t1/             # T1 phantom scans (LLR/NUFFT) and reference maps
 │   ├── phantom_t2/             # T2 phantom scans (8192/384/192 views) and references
 │   └── dictionaries/           # Pre-computed dictionaries (TE/PC space, T1/T2)
@@ -30,6 +31,13 @@ The repository is organized as follows:
 │   │
 │   └── qmri_cmaps/             # Colormap utilities
 │       └── relaxationColorMap.m
+
+├── python_src/                 # Python implementation
+│   ├── run_simulation.py       # Main script for Numerical Simulations
+│   ├── run_phantom_t1.py       # Main script for T1 Phantom Validation
+│   ├── run_phantom_t2.py       # Main script for T2 Phantom Validation
+│   ├── solvers.py              # Unified LRT and Bayesian solvers
+│   └── utils.py                # Helper functions (IO, stats, plotting) ? [Confirm .py or / folder]
 │
 ├── matlab_output/                     # MATLAB Generated results (created automatically)
 │   ├── simulation_results/
