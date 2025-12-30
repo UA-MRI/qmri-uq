@@ -87,7 +87,7 @@ for r_idx = 1:size(unique_ranges,1)
     else
         trunc_lengths = repmat(nt, length(v_idx), 1);
     end
-    
+
     [u_lengths, ~, group_map] = unique(trunc_lengths);
     
     % --- Inner Loop: Process by Truncation Length ---

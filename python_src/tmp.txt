@@ -1,0 +1,22 @@
+
+
+Generating Correlation Plots...
+Traceback (most recent call last):
+  File "/clusterhome/tonerbp/qmri-uq/python_src/run_phantom_t2.py", line 181, in <module>
+    main()
+  File "/clusterhome/tonerbp/qmri-uq/python_src/run_phantom_t2.py", line 135, in main
+    generate_plots(plot_db, scans, b1_modes)
+  File "/clusterhome/tonerbp/qmri-uq/python_src/run_phantom_t2.py", line 164, in generate_plots
+    plt.errorbar(x, y, yerr=yerr, fmt=markers[s_idx], color=colors[s_idx],
+  File "/home/tonerbp/miniconda3/envs/mri_uq/lib/python3.10/site-packages/matplotlib/_api/deprecation.py", line 453, in wrapper
+    return func(*args, **kwargs)
+  File "/home/tonerbp/miniconda3/envs/mri_uq/lib/python3.10/site-packages/matplotlib/pyplot.py", line 3282, in errorbar
+    return gca().errorbar(
+  File "/home/tonerbp/miniconda3/envs/mri_uq/lib/python3.10/site-packages/matplotlib/_api/deprecation.py", line 453, in wrapper
+    return func(*args, **kwargs)
+  File "/home/tonerbp/miniconda3/envs/mri_uq/lib/python3.10/site-packages/matplotlib/__init__.py", line 1524, in inner
+    return func(
+  File "/home/tonerbp/miniconda3/envs/mri_uq/lib/python3.10/site-packages/matplotlib/axes/_axes.py", line 3825, in errorbar
+    raise ValueError(
+ValueError: 'yerr' must not contain negative values
+ICE default IO error handler doing an exit(), pid = 10489, errno = 32

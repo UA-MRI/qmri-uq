@@ -35,7 +35,7 @@ alpha_lvl = 0.05;         % 95% CI
 t1_disp_range = [0 1500]; % Display range for T1 maps (ms)
 uq_disp_range = [0 200];  % Display range for Uncertainty maps (ms)
 fov = [96 96];            % Cropped FOV
-use_identity_cov = true; % Failure mode test flag
+use_identity_cov = false; % Failure mode test flag
 
 % -- Scan Definitions --
 % Experiment 1: Single Measurement, LLR, PC Space
@@ -62,10 +62,10 @@ exps(2).files = {'contrast_16meas_nufft_50ti.mat', ...
 
 %% 3. Output Configuration
 if use_identity_cov
-    out_dir = fullfile(repo_root, 'output', 'phantom_t1_results_identity');
+    out_dir = fullfile(repo_root, 'matlab_output', 'phantom_t1_results_identity');
     fprintf('Running in IDENTITY COVARIANCE mode. Saving to: %s\n', out_dir);
 else
-    out_dir = fullfile(repo_root, 'output', 'phantom_t1_results');
+    out_dir = fullfile(repo_root, 'matlab_output', 'phantom_t1_results');
     fprintf('Running in STANDARD COVARIANCE mode. Saving to: %s\n', out_dir);
 end
 
@@ -181,47 +181,63 @@ end
 fprintf('\nGenerating Correlation Plots...\n');
 fs = 14; lw = 1.5;
 
-fig = figure('Name', 'T1 Correlation', 'Color', 'w', 'Position', [100, 100, 1200, 600]);
-
-% Create one subplot per Experiment (Scan Type)
+% Create one Figure per Experiment (1-Meas LLR, 16-Meas NUFFT)
 for e_idx = 1:length(exps)
-    subplot(1, length(exps), e_idx); hold on; grid on; box on;
+    fig = figure('Name', sprintf('%s Correlation', exps(e_idx).name), ...
+                 'Color', 'w', 'Position', [100, 100, 1000, 500]);
+             
+    methods = {'LRT', 'Bayesian'};
     
-    % Identity Line
-    plot([0 2000], [0 2000], 'k--', 'LineWidth', 1, 'HandleVisibility', 'off');
-    
-    % Markers/Colors for Truncation Levels
-    colors = lines(3); % For 50, 30, 10
-    markers = {'o', 's', '^'};
-    
-    % Plot Each Truncation Level
-    for t_idx = 1:length(exps(e_idx).tis)
-        res_struct = plot_db(e_idx, t_idx);
-        if isempty(res_struct.data), continue; end
+    % Create Subplots: Left = LRT, Right = Bayesian
+    for m = 1:2
+        subplot(1, 2, m); hold on; grid on; box on;
+        method = methods{m};
         
-        res = res_struct.data;
-        n_ti = res_struct.n_ti;
+        % Identity Line
+        plot([0 2000], [0 2000], 'k--', 'LineWidth', 1, 'HandleVisibility', 'off');
         
-        % Plotting LRT results for correlation visualization
-        est_t1 = res.lrt_mean;
-        ref_t1 = res.ref_mean;
+        % Markers/Colors for Truncation Levels
+        colors = lines(3); % For 50, 30, 10
+        markers = {'o', 's', '^'};
         
-        err_neg = est_t1 - res.lrt_ci_low;
-        err_pos = res.lrt_ci_high - est_t1;
+        % Plot Each Truncation Level
+        for t_idx = 1:length(exps(e_idx).tis)
+            res_struct = plot_db(e_idx, t_idx);
+            if isempty(res_struct.data), continue; end
+            
+            res = res_struct.data;
+            n_ti = res_struct.n_ti;
+            ref_t1 = res.ref_mean;
+            
+            % Select Data based on Method
+            if strcmp(method, 'LRT')
+                est_t1 = res.lrt_mean;
+                ci_low = res.lrt_ci_low;
+                ci_high = res.lrt_ci_high;
+            else
+                est_t1 = res.bayes_mean;
+                ci_low = res.bayes_ci_low;
+                ci_high = res.bayes_ci_high;
+            end
+            
+            err_neg = est_t1 - ci_low;
+            err_pos = ci_high - est_t1;
+            
+            errorbar(ref_t1, est_t1, err_neg, err_pos, ...
+                markers{t_idx}, 'Color', colors(t_idx,:), ...
+                'MarkerFaceColor', colors(t_idx,:), 'LineWidth', lw, ...
+                'CapSize', 8, 'DisplayName', sprintf('%d TIs', n_ti));
+        end
         
-        errorbar(ref_t1, est_t1, err_neg, err_pos, ...
-            markers{t_idx}, 'Color', colors(t_idx,:), ...
-            'MarkerFaceColor', colors(t_idx,:), 'LineWidth', lw, ...
-            'CapSize', 8, 'DisplayName', sprintf('%d TIs', n_ti));
+        xlabel('Reference SEIR T_1 (ms)', 'FontSize', fs);
+        ylabel(sprintf('%s Estimated T_1 (ms)', method), 'FontSize', fs);
+        title(sprintf('%s: %s', exps(e_idx).name, method), 'FontSize', fs, 'Interpreter', 'none');
+        xlim([400 1600]); ylim([400 1600]);
+        axis square;
+        if m == 1, legend('Location', 'northwest', 'FontSize', 10); end
     end
     
-    xlabel('Reference SEIR T_1 (ms)', 'FontSize', fs);
-    ylabel('Estimated T_1 (ms)', 'FontSize', fs);
-    title(strrep(exps(e_idx).name, '_', ' '), 'FontSize', fs);
-    xlim([400 1600]); ylim([400 1600]);
-    axis square; % Force square aspect ratio
-    legend('Location', 'northwest', 'FontSize', 10);
+    saveas(fig, fullfile(out_dir, 'plots', sprintf('Correlation_%s.png', exps(e_idx).name)));
 end
 
-saveas(fig, fullfile(out_dir, 'plots', 'Correlation_Plot_T1.png'));
 fprintf('Done. Results saved to %s\n', out_dir);

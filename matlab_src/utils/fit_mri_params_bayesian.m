@@ -20,7 +20,7 @@ function [maps, stats] = fit_mri_params_bayesian(data, sigma, D, options)
 %       .trunc_factor   - scalar (default 3.0)
 %
 % OUTPUTS:
-%   maps    - Struct with fields .q, .B1 (Point Estimates).
+%   maps    - Struct with fields .q, .q_map, .B1 (Point Estimates).
 %   stats   - Struct with fields .q_ci, .q_std, .B1_std.
 
 %% 1. Default Options
@@ -39,7 +39,8 @@ dict_b1 = unique(D.lookup_table(:,1));
 b1_limits = get_b1_limits(options, dict_b1, N_voxels);
 
 %% 3. Prepare Outputs
-maps = struct('q', nan(N_voxels,1), 'B1', nan(N_voxels,1));
+% Added q_map to store the Maximum A Posteriori estimate
+maps = struct('q', nan(N_voxels,1), 'q_map', nan(N_voxels,1), 'B1', nan(N_voxels,1));
 stats = struct('q_ci', nan(N_voxels,2), 'B1_std', nan(N_voxels,1), 'q_std', nan(N_voxels,1));
 
 %% 4. Main Loop: Group by B1 Constraint
@@ -71,6 +72,8 @@ for r_idx = 1:size(unique_ranges,1)
     X_sub = Xobs(:, v_idx);
     X_norm = X_sub ./ vecnorm(X_sub, 2, 1);
     [~, best_atom] = max(abs(X_norm' * conj(D_sub)), [], 2);
+    
+    % Store Cosine Sim as the primary 'q'
     q_est = lut_sub(best_atom, 2);
     maps.q(v_idx) = q_est;
     maps.B1(v_idx) = lut_sub(best_atom, 1);
@@ -99,10 +102,14 @@ for r_idx = 1:size(unique_ranges,1)
         % 1. Compute Posteriors
         [p_q, p_b1] = compute_posterior(X_L, D_L, Sigma_L, sub_b1_grid, sub_q_grid, L);
         
-        % 2. Calculate Statistics using Greedy CI Expansion
-        % Use the point estimate as the anchor for the interval
-        current_centers = maps.q(final_v_idx);
-        [lb, ub] = calc_ci_greedy(sub_q_grid, p_q, current_centers, 1 - options.alpha);
+        % 2. Find MAP Estimate (Mode of Posterior)
+        [~, max_idx] = max(p_q, [], 1);
+        map_vals = sub_q_grid(max_idx);
+        maps.q_map(final_v_idx) = map_vals; % Store MAP
+        
+        % 3. Calculate Statistics using Greedy CI Expansion
+        % Anchor the CI to the MAP estimate, NOT the Cosine Similarity
+        [lb, ub] = calc_ci_greedy(sub_q_grid, p_q, map_vals, 1 - options.alpha);
         
         % Standard Deviation (Moment matching)
         [~, ~, std_q] = calc_stats_moments(sub_q_grid, p_q);
@@ -117,6 +124,7 @@ end
 
 % Reshape results to image dimensions
 maps.q = reshape(maps.q, nx, ny);
+maps.q_map = reshape(maps.q_map, nx, ny);
 maps.B1 = reshape(maps.B1, nx, ny);
 stats.q_ci = reshape(stats.q_ci, nx, ny, 2);
 stats.B1_std = reshape(stats.B1_std, nx, ny);
@@ -207,7 +215,7 @@ function [lb, ub] = calc_ci_greedy(grid_vals, probs, centers, confidence)
     for v = 1:n_vox
         p_v = probs(:, v);
         
-        % Anchor to the point estimate (center)
+        % Anchor to the provided center (now explicitly the MAP)
         [~, mode_idx] = min(abs(grid_vals - centers(v)));
         L = mode_idx; R = mode_idx;
         

@@ -123,3 +123,27 @@ The repository relies on two unified solver functions that handle both T1 and T2
 
 Both solvers accept a dictionary structure `D` containing signal atoms and a lookup table, making them agnostic to the specific physics (T1 vs. T2) being modeled.
 
+
+
+## Python Implementation
+
+We provide a Python translation of the simulation pipeline to ensure cross-platform reproducibility.
+
+### 1. Prerequisites
+Ensure you have [Miniconda](https://docs.conda.io/en/latest/miniconda.html) installed.
+
+### 2. Setup Environment
+Navigate to the repository root and create the environment:
+
+```bash
+conda env create -f environment.yml
+conda activate mri_uq
+
+3. Running the Simulation
+
+To run the T2 mapping numerical simulation:
+Bash
+
+python run_simulation.py
+
+Results will be saved in python_output/. The script automatically detects the data in the existing data/ folder (assuming you have already downloaded or generated the MATLAB data files).

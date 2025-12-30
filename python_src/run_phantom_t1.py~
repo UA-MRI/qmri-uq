@@ -1,0 +1,181 @@
+# run_phantom_t1.py
+import os
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+
+from utils import load_mat, estimate_noise_covariance, crop_image, extract_roi_stats, save_map
+from solvers import fit_mri_params_lrt, fit_mri_params_bayesian
+
+# --- Configuration ---
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(SCRIPT_DIR)
+DATA_DIR = os.path.join(REPO_ROOT, 'data', 'phantom_t1')
+DICT_DIR = os.path.join(REPO_ROOT, 'data', 'dictionaries')
+
+USE_IDENTITY_COV = True
+FOV = (96, 96)
+ALPHA = 0.05
+RNG_T1 = (0, 1500)
+RNG_UQ = (0, 200)
+
+OUT_DIR = os.path.join(REPO_ROOT, 'python_output', 'phantom_t1_results_identity' if USE_IDENTITY_COV else 'phantom_t1_results')
+os.makedirs(os.path.join(OUT_DIR, 'images'), exist_ok=True)
+os.makedirs(os.path.join(OUT_DIR, 'plots'), exist_ok=True)
+
+# Experiment Definitions
+experiments = [
+    {
+        'name': '1Meas_LLR', 'type': 'PC',
+        'dicts': ['t1_phantom_PC_50TI.mat', 't1_phantom_PC_30TI.mat', 't1_phantom_PC_10TI.mat'],
+        'tis': [50, 30, 10],
+        'files': ['contrast_1meas_llr_50ti.mat', 'contrast_1meas_llr_30ti.mat', 'contrast_1meas_llr_10ti.mat']
+    },
+    {
+        'name': '16Meas_NUFFT', 'type': 'TI',
+        'dicts': ['t1_phantom_TI_50TI.mat', 't1_phantom_TI_30TI.mat', 't1_phantom_TI_10TI.mat'],
+        'tis': [50, 30, 10],
+        'files': ['contrast_16meas_nufft_50ti.mat', 'contrast_16meas_nufft_30ti.mat', 'contrast_16meas_nufft_10ti.mat']
+    }
+]
+
+def main():
+    print("Loading Reference Data...")
+    try:
+        ref_data = load_mat(os.path.join(DATA_DIR, 'reference_maps.mat'))
+        roi_data = load_mat(os.path.join(DATA_DIR, 'roi_masks.mat'))
+        
+        seir_t1 = crop_image(ref_data['seir_t1map'], FOV)
+        seir_con = crop_image(ref_data['seir_contrast'], FOV)
+        
+        # Display mask (simple threshold)
+        disp_mask = seir_con[:, :, -1] > 0.1 * np.max(seir_con)
+    except Exception as e:
+        print(f"Error loading references: {e}")
+        return
+
+    plot_db = {} # Store stats for plotting
+
+    for exp in experiments:
+        print(f"\n=== Experiment: {exp['name']} ({exp['type']} Space) ===")
+        
+        for i, n_ti in enumerate(exp['tis']):
+            fname = exp['files'][i]
+            dname = exp['dicts'][i]
+            
+            print(f"   > Truncation: {n_ti} TIs ({fname})")
+            
+            try:
+                # Load Dict and Contrast
+                D = load_mat(os.path.join(DICT_DIR, dname))['D']
+                contrast = load_mat(os.path.join(DATA_DIR, fname))['contrast']
+                
+                # Crop and Cast
+                # Use complex128 to preserve phases if present
+                contrast = crop_image(contrast.astype(np.complex128), FOV) 
+                
+                # Noise Covariance
+                if USE_IDENTITY_COV:
+                    sigma = np.eye(contrast.shape[2])
+                else:
+                    sigma = estimate_noise_covariance(contrast, frame_size=10)
+                
+                ops = {'alpha': ALPHA, 'b1_mode': 'none', 'te_truncation': False}
+                
+                # LRT
+                t0 = time.time()
+                _, lrt_res = fit_mri_params_lrt(contrast, sigma, D, ops)
+                lrt_uq = lrt_res['q_ci'][:, 1] - lrt_res['q_ci'][:, 0]
+                print(f"     LRT: {time.time()-t0:.2f}s")
+                
+                # Bayesian
+                t0 = time.time()
+                _, bayes_res = fit_mri_params_bayesian(contrast, sigma, D, ops)
+                bayes_uq = bayes_res['q_ci'][:, 1] - bayes_res['q_ci'][:, 0]
+                print(f"     Bayes: {time.time()-t0:.2f}s")
+                
+                # Reshape results to images [Nx, Ny]
+                nx, ny = FOV
+                lrt_t1 = lrt_res['q'].reshape(nx, ny)
+                lrt_uq_img = lrt_uq.reshape(nx, ny)
+                bayes_t1 = bayes_res['q'].reshape(nx, ny)
+                bayes_uq_img = bayes_uq.reshape(nx, ny)
+                
+                # Save Images
+                base = f"{exp['name']}_{n_ti}TIs"
+                save_map(lrt_t1, os.path.join(OUT_DIR, 'images', f"{base}_LRT_T1.png"), 
+                         f"{base.replace('_',' ')} LRT T1", RNG_T1, disp_mask, 'T1')
+                save_map(lrt_uq_img, os.path.join(OUT_DIR, 'images', f"{base}_LRT_Unc.png"), 
+                         f"{base.replace('_',' ')} LRT Unc", RNG_UQ, disp_mask, 'UQ')
+                save_map(bayes_t1, os.path.join(OUT_DIR, 'images', f"{base}_Bayes_T1.png"), 
+                         f"{base.replace('_',' ')} Bayes T1", RNG_T1, disp_mask, 'T1')
+                save_map(bayes_uq_img, os.path.join(OUT_DIR, 'images', f"{base}_Bayes_Unc.png"), 
+                         f"{base.replace('_',' ')} Bayes Unc", RNG_UQ, disp_mask, 'UQ')
+
+                # Extract ROI Stats
+                # Reshape raw results to pass to extractor
+                # We need to construct result dicts that look like the output of the solver but reshaped?
+                # Actually my `extract_roi_stats` takes the raw solver output dicts (flat vectors).
+                # But it expects crop_image inside. 
+                # Let's fix extraction: The solver outputs are FLAT. 
+                # We need to reshape them to (Nx, Ny) for the extractor to work with masks.
+                
+                lrt_struct = {
+                    'q': lrt_t1, 
+                    'q_ci': lrt_res['q_ci'].reshape(nx, ny, 2)
+                }
+                bayes_struct = {
+                    'q': bayes_t1, 
+                    'q_ci': bayes_res['q_ci'].reshape(nx, ny, 2)
+                }
+                
+                stats = extract_roi_stats(roi_data['roi_masks'], seir_t1, lrt_struct, bayes_struct)
+                plot_db[(exp['name'], n_ti)] = stats
+                
+            except Exception as e:
+                print(f"     Failed: {e}")
+                continue
+
+    generate_plots(plot_db, experiments)
+
+def generate_plots(db, experiments):
+    print("\nGenerating Correlation Plots...")
+    plt.figure(figsize=(12, 6))
+    
+    colors = ['tab:blue', 'tab:orange', 'tab:green']
+    markers = ['o', 's', '^']
+    
+    for idx, exp in enumerate(experiments):
+        plt.subplot(1, len(experiments), idx+1)
+        plt.plot([0, 2000], [0, 2000], 'k--', alpha=0.5)
+        
+        for t_i, n_ti in enumerate(exp['tis']):
+            key = (exp['name'], n_ti)
+            if key not in db: continue
+            
+            res = db[key]
+            
+            # LRT Plotting
+            x = res['ref_mean']
+            y = res['lrt_mean']
+            yerr = [y - res['lrt_ci_low'], res['lrt_ci_high'] - y]
+            
+            plt.errorbar(x, y, yerr=yerr, fmt=markers[t_i], color=colors[t_i],
+                         label=f"{n_ti} TIs", capsize=3, alpha=0.8)
+            
+        plt.title(exp['name'].replace('_', ' '))
+        plt.xlabel("Reference SEIR T1 (ms)")
+        plt.ylabel("Estimated T1 (ms)")
+        plt.xlim(400, 1600)
+        plt.ylim(400, 1600)
+        plt.gca().set_aspect('equal')
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUT_DIR, 'plots', 'Correlation_Plot_T1.png'))
+    print(f"Done. Output saved to {OUT_DIR}")
+
+if __name__ == "__main__":
+    main()

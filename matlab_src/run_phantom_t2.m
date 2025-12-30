@@ -45,10 +45,10 @@ b1_modes = {'Free', 'Range'};
 
 % Output Directory Logic
 if use_identity_cov
-    out_dir = fullfile(repo_root, 'output', 'phantom_t2_results_identity');
+    out_dir = fullfile(repo_root, 'matlab_output', 'phantom_t2_results_identity');
     fprintf('Running in IDENTITY COVARIANCE mode. Saving to: %s\n', out_dir);
 else
-    out_dir = fullfile(repo_root, 'output', 'phantom_t2_results');
+    out_dir = fullfile(repo_root, 'matlab_output', 'phantom_t2_results');
     fprintf('Running in STANDARD COVARIANCE mode. Saving to: %s\n', out_dir);
 end
 

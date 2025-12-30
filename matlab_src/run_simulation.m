@@ -2,21 +2,13 @@
 %  Numerical Simulation for Dictionary-Based MRI Uncertainty Quantification
 %
 %  DESCRIPTION:
-%  This script reproduces the numerical simulation experiments described in 
-%  the paper (Fig. 2). It evaluates the performance of Likelihood Ratio Test 
-%  (LRT) and Bayesian uncertainty quantification methods under controlled 
-%  noise conditions.
+%  This script reproduces the numerical simulation experiments.
+%  It evaluates the performance of LRT and Bayesian methods.
 %
-%  The script performs the following steps:
-%  1. Loads sample data to estimate a realistic noise covariance structure.
-%  2. Loads a pre-computed signal dictionary.
-%  3. Simulates noisy signals by adding correlated noise to ground-truth atoms.
-%  4. Fits parameters using both LRT and Bayesian frameworks.
-%  5. Generates performance plots (Coverage Probability and Interval Width).
-%
-%  OUTPUTS:
-%  - CSV files containing coverage statistics and interval sizes.
-%  - PNG plots comparing the methods across parameter values.
+%  UPDATES:
+%  - Decoupled noise generation from model fitting.
+%  - Simulation always uses realistic background covariance.
+%  - Fitting uses Identity or True covariance based on 'use_identity_cov'.
 
 restoredefaultpath;
 clear; clc; close all;
@@ -39,22 +31,20 @@ N_sim    = 1000;              % Number of Monte Carlo realizations per T2
 alpha_lvl = 0.05;             % Significance level (e.g., 0.05 for 95% CI)
 
 % -- Failure Mode Testing --
-% Set to true to assume i.i.d. noise (Identity Covariance), ignoring correlations.
+% Set to true to assume i.i.d. noise (Identity Covariance) during FITTING,
+% while ensuring the data is still SIMULATED with realistic correlated noise.
 use_identity_cov = false;     
 
 % -- Loop Settings --
-% Define the scenarios to test:
-% 1. Contrast Type: Full Echo Train (TE) vs Principal Component Subspace (PC)
-% 2. B1 Knowledge: Constrained (using a prior map) vs Free (joint estimation)
 contrast_modes = {'TE', 'PC'};
 b1_modes       = [true, false]; 
 
 %% 3. Output Configuration
 if use_identity_cov
-    output_dir = fullfile(repo_root, 'output', 'simulation_results_identity');
-    fprintf('Running in IDENTITY COVARIANCE mode. Saving to: %s\n', output_dir);
+    output_dir = fullfile(repo_root, 'matlab_output', 'simulation_results_identity');
+    fprintf('Running in IDENTITY COVARIANCE mode (Fit with Identity, Sim with Real). Saving to: %s\n', output_dir);
 else
-    output_dir = fullfile(repo_root, 'output', 'simulation_results');
+    output_dir = fullfile(repo_root, 'matlab_output', 'simulation_results');
     fprintf('Running in STANDARD COVARIANCE mode. Saving to: %s\n', output_dir);
 end
 
@@ -86,23 +76,32 @@ for c_idx = 1:length(contrast_modes)
     end
     dict_atoms_full = D.magnetization; 
 
-    % --- Estimate Noise Covariance ---
+    % --- 1. Prepare Simulation Covariance  ---
     contrast_dbl = double(contrast) * 1e4; 
     sig_norm = 1;
     
-    if use_identity_cov
-        sigma_unscaled = eye(N_t);
-    else
-        sigma_unscaled = estimateNoiseCovariance(contrast_dbl, 10);
-    end
+    % Always estimate the true background structure for simulation
+    sigma_background = estimateNoiseCovariance(contrast_dbl, 10);
 
     % Scale Covariance to match target SNR
     snr_lin = 10^(SNR_dB / 10);
-    cov_scale = sig_norm^2 / (snr_lin^2 * trace(sigma_unscaled));
-    sigma_gt = regularize_covariance(cov_scale * sigma_unscaled, 500);
+    cov_scale = sig_norm^2 / (snr_lin^2 * trace(sigma_background));
+    
+    % sigma_sim is the "Ground Truth" covariance used to generate noise
+    sigma_sim = regularize_covariance(cov_scale * sigma_background, 500);
     
     % Create real-valued covariance for complex noise generation
-    Sigma_w = [real(sigma_gt), -imag(sigma_gt); imag(sigma_gt), real(sigma_gt)];
+    Sigma_w = [real(sigma_sim), -imag(sigma_sim); imag(sigma_sim), real(sigma_sim)];
+
+    % --- 2. Prepare Fitting Covariance ---
+    if use_identity_cov
+        % Solver sees Identity (ignoring correlations)
+        % We do NOT need to scale this. The solver's sigma^2 parameter handles the scale.
+        sigma_fit = eye(N_t); 
+    else
+        % Solver sees the True Covariance
+        sigma_fit = sigma_sim;
+    end
 
     % Define Truncation Parameters (TE space only)
     TE_array_full = (1:header.etl) * header.esp; 
@@ -160,7 +159,7 @@ for c_idx = 1:length(contrast_modes)
             clean_sig = dict_atoms_full(:, atom_idx);
             clean_sig = clean_sig ./ norm(clean_sig) * sig_norm;
             
-            % 2. Add Correlated Noise
+            % 2. Add Correlated Noise (Using sigma_sim)
             noise_ri = mvnrnd(zeros(1, 2 * N_t), Sigma_w, N_sim);
             complex_noise = noise_ri(:, 1:N_t) + 1j * noise_ri(:, N_t+1:end);
             noisy_signals = reshape(repmat(clean_sig.', N_sim, 1) + complex_noise, [N_sim, 1, N_t]);
@@ -170,11 +169,11 @@ for c_idx = 1:length(contrast_modes)
                 ops.b1_input = repmat(reshape(b1_range_fit, 1, 1, 2), N_sim, 1, 1);
             end
             
-            % 3. Run Solvers
-            [~, lrt_stats] = fit_mri_params_lrt(noisy_signals, sigma_gt, D, ops);
+            % 3. Run Solvers (Using sigma_fit)
+            [~, lrt_stats] = fit_mri_params_lrt(noisy_signals, sigma_fit, D, ops);
             lrt_CI = lrt_stats.q_ci;
 
-            [~, bayes_stats] = fit_mri_params_bayesian(noisy_signals, sigma_gt, D, ops);
+            [~, bayes_stats] = fit_mri_params_bayesian(noisy_signals, sigma_fit, D, ops);
             bayes_CI = bayes_stats.q_ci;
             
             % 4. Calculate Statistics
@@ -238,4 +237,4 @@ legend(plots, legends, 'Location', 'northwest', 'FontSize', 10, 'NumColumns', 2)
 saveas(fig2, fullfile(output_dir, sprintf('MASTER_interval_size_%s.png', plot_suffix)));
 
 fprintf('Done. Plots saved to %s\n', output_dir);
-fclose all; 
+fclose all;

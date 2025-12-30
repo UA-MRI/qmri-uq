@@ -1,0 +1,13 @@
+name: mri_uq
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy
+  - scipy
+  - matplotlib
+  - h5py
+  - tqdm
+  - pip
+  - pip:
+    - mat73  # Often needed if your .mat files are v7.3
