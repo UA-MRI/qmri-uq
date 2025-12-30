@@ -1,0 +1,227 @@
+%% run_phantom_t1.m
+%  Phantom Experiment: T1 Mapping Validation
+%
+%  DESCRIPTION:
+%  Performs T1 mapping and uncertainty quantification on phantom data using
+%  Inversion Recovery (IR) sequences. It evaluates two reconstruction approaches
+%  (LLR vs NUFFT) and the effect of retrospective acceleration via IR curve
+%  truncation (reducing the number of Inversion Times).
+%
+%  SCENARIOS:
+%  1. Scans:
+%     - 1-Meas LLR (PC Space): Low-Rank subspace reconstruction.
+%     - 16-Meas NUFFT (TI Space): Standard time-resolved reconstruction.
+%  2. Truncation Levels: 50 TIs (Full), 30 TIs, 10 TIs.
+%  3. B1 Information: Not used (Free fit).
+%
+%  OUTPUTS:
+%  - /images: T1 Maps and Uncertainty Maps (.png/.tiff)
+%  - /plots:  Correlation plots vs SEIR Reference
+
+restoredefaultpath;
+clear; clc; close all;
+
+%% 1. Setup Paths
+[script_dir, ~, ~] = fileparts(mfilename('fullpath'));
+addpath(genpath(script_dir));
+
+repo_root = fileparts(script_dir);
+data_dir  = fullfile(repo_root, 'data', 'phantom_t1');
+dict_dir  = fullfile(repo_root, 'data', 'dictionaries');
+
+%% 2. Experiment Configuration
+% -- Processing Settings --
+alpha_lvl = 0.05;         % 95% CI
+t1_disp_range = [0 1500]; % Display range for T1 maps (ms)
+uq_disp_range = [0 200];  % Display range for Uncertainty maps (ms)
+fov = [96 96];            % Cropped FOV
+use_identity_cov = true; % Failure mode test flag
+
+% -- Scan Definitions --
+% Experiment 1: Single Measurement, LLR, PC Space
+exps(1).name = '1Meas_LLR';
+exps(1).type = 'PC';
+exps(1).dicts = {'t1_phantom_PC_50TI.mat', ...
+        't1_phantom_PC_30TI.mat', ...
+        't1_phantom_PC_10TI.mat'} ; % Base dictionary (will be projected)
+exps(1).tis  = [50, 30, 10];
+exps(1).files = {'contrast_1meas_llr_50ti.mat', ...
+                 'contrast_1meas_llr_30ti.mat', ...
+                 'contrast_1meas_llr_10ti.mat'};
+
+% Experiment 2: 16 Measurements, NUFFT, TI Space
+exps(2).name = '16Meas_NUFFT';
+exps(2).type = 'TI';
+exps(2).dicts = {'t1_phantom_TI_50TI.mat', ...
+        't1_phantom_TI_30TI.mat', ...
+        't1_phantom_TI_10TI.mat'} ; % Base dictionary (will be projected)
+exps(2).tis  = [50, 30, 10];
+exps(2).files = {'contrast_16meas_nufft_50ti.mat', ...
+                 'contrast_16meas_nufft_30ti.mat', ...
+                 'contrast_16meas_nufft_10ti.mat'};
+
+%% 3. Output Configuration
+if use_identity_cov
+    out_dir = fullfile(repo_root, 'output', 'phantom_t1_results_identity');
+    fprintf('Running in IDENTITY COVARIANCE mode. Saving to: %s\n', out_dir);
+else
+    out_dir = fullfile(repo_root, 'output', 'phantom_t1_results');
+    fprintf('Running in STANDARD COVARIANCE mode. Saving to: %s\n', out_dir);
+end
+
+if ~isfolder(out_dir); mkdir(out_dir); end
+if ~isfolder(fullfile(out_dir, 'images')); mkdir(fullfile(out_dir, 'images')); end
+if ~isfolder(fullfile(out_dir, 'plots')); mkdir(fullfile(out_dir, 'plots')); end
+
+%% 4. Load Common Resources
+fprintf('Loading Reference Data...\n');
+
+try
+    % Load SEIR Reference and ROIs
+    load(fullfile(data_dir, 'reference_maps.mat'), 'seir_t1map', 'seir_contrast');
+    load(fullfile(data_dir, 'roi_masks.mat'), 'roi_masks');
+catch
+    error('Missing reference files in %s', data_dir);
+end
+
+% Crop Reference
+seir_t1map = crop_image(seir_t1map, fov);
+seir_contrast = crop_image(seir_contrast, fov);
+
+% Create a display mask (background suppression)
+display_mask = seir_contrast(:,:,end) > 0.1*max(seir_contrast(:)); % Simple threshold on reference
+
+% Storage for Plotting
+plot_db = struct();
+
+%% 5. Main Processing Loop
+for e_idx = 1:length(exps)
+    exp = exps(e_idx);
+    fprintf('\n=== Experiment: %s (%s Space) ===\n', exp.name, exp.type);
+    
+    
+    % Loop through Truncation Levels (TIs)
+    for t_idx = 1:length(exp.tis)
+        n_ti = exp.tis(t_idx);
+        fname = exp.files{t_idx};
+        dict_name = exp.dicts{t_idx};
+        
+        fprintf('   > Truncation: %d TIs (File: %s)\n', n_ti, fname);
+        
+        % Load Base Dictionary
+        try
+            load(fullfile(dict_dir, dict_name), 'D');
+        catch
+            warning('Dictionary %s not found. Skipping experiment.', exp.dict); continue;
+        end
+        
+        % Load Contrast Data
+        try
+            load(fullfile(data_dir, fname), 'contrast');
+        catch
+            warning('     File not found. Skipping.'); continue;
+        end
+        
+        % 1. Prepare Data
+        contrast_dbl = crop_image(double(contrast), fov);
+        [nx, ny, nt_data] = size(contrast_dbl);
+        
+        % 2. Prepare Covariance
+        if use_identity_cov
+            sigma = eye(nt_data);
+        else
+            sigma = estimateNoiseCovariance(contrast_dbl, 10);
+        end
+        
+        % 3. Solver Options (No B1 Map)
+        ops = struct('alpha', alpha_lvl, 'te_truncation', false, ...
+                     'b1_mode', 'none');
+                 
+        % 4. Run Solvers
+        % LRT
+        t0 = tic;
+        [lrt_maps, lrt_stats] = fit_mri_params_lrt(contrast_dbl, sigma, D, ops);
+        lrt_uq = lrt_stats.q_ci(:,:,2) - lrt_stats.q_ci(:,:,1);
+        fprintf('     LRT: %.2fs | ', toc(t0));
+        
+        % Bayesian
+        t0 = tic;
+        [bayes_maps, bayes_stats] = fit_mri_params_bayesian(contrast_dbl, sigma, D, ops);
+        bayes_uq = bayes_stats.q_ci(:,:,2) - bayes_stats.q_ci(:,:,1);
+        fprintf('Bayes: %.2fs\n', toc(t0));
+        
+        % 5. Save Images
+        base_name = sprintf('%s_%dTIs', exp.name, n_ti);
+        img_dir = fullfile(out_dir, 'images');
+        
+        % Save T1 Maps (using T1-specific helper)
+        save_t1_img(lrt_maps.q, fullfile(img_dir, [base_name '_LRT_T1.png']), ...
+            [strrep(base_name, '_', ' ') ' LRT T1'], t1_disp_range, display_mask);
+        
+        save_uq_img(lrt_uq, fullfile(img_dir, [base_name '_LRT_Unc.png']), ...
+            [strrep(base_name, '_', ' ') ' LRT Unc'], uq_disp_range, display_mask);
+            
+        save_t1_img(bayes_maps.q, fullfile(img_dir, [base_name '_Bayes_T1.png']), ...
+            [strrep(base_name, '_', ' ') ' Bayes T1'], t1_disp_range, display_mask);
+        
+        save_uq_img(bayes_uq, fullfile(img_dir, [base_name '_Bayes_Unc.png']), ...
+            [strrep(base_name, '_', ' ') ' Bayes Unc'], uq_disp_range, display_mask);
+            
+        % 6. Extract ROI Stats
+        roi_res = extract_roi_stats(roi_masks, seir_t1map, lrt_maps, lrt_stats, bayes_maps, bayes_stats);
+        
+        % Store
+        plot_db(e_idx, t_idx).name = exp.name;
+        plot_db(e_idx, t_idx).n_ti = n_ti;
+        plot_db(e_idx, t_idx).data = roi_res;
+    end
+end
+
+%% 7. Generate Correlation Plots
+fprintf('\nGenerating Correlation Plots...\n');
+fs = 14; lw = 1.5;
+
+fig = figure('Name', 'T1 Correlation', 'Color', 'w', 'Position', [100, 100, 1200, 600]);
+
+% Create one subplot per Experiment (Scan Type)
+for e_idx = 1:length(exps)
+    subplot(1, length(exps), e_idx); hold on; grid on; box on;
+    
+    % Identity Line
+    plot([0 2000], [0 2000], 'k--', 'LineWidth', 1, 'HandleVisibility', 'off');
+    
+    % Markers/Colors for Truncation Levels
+    colors = lines(3); % For 50, 30, 10
+    markers = {'o', 's', '^'};
+    
+    % Plot Each Truncation Level
+    for t_idx = 1:length(exps(e_idx).tis)
+        res_struct = plot_db(e_idx, t_idx);
+        if isempty(res_struct.data), continue; end
+        
+        res = res_struct.data;
+        n_ti = res_struct.n_ti;
+        
+        % Plotting LRT results for correlation visualization
+        est_t1 = res.lrt_mean;
+        ref_t1 = res.ref_mean;
+        
+        err_neg = est_t1 - res.lrt_ci_low;
+        err_pos = res.lrt_ci_high - est_t1;
+        
+        errorbar(ref_t1, est_t1, err_neg, err_pos, ...
+            markers{t_idx}, 'Color', colors(t_idx,:), ...
+            'MarkerFaceColor', colors(t_idx,:), 'LineWidth', lw, ...
+            'CapSize', 8, 'DisplayName', sprintf('%d TIs', n_ti));
+    end
+    
+    xlabel('Reference SEIR T_1 (ms)', 'FontSize', fs);
+    ylabel('Estimated T_1 (ms)', 'FontSize', fs);
+    title(strrep(exps(e_idx).name, '_', ' '), 'FontSize', fs);
+    xlim([400 1600]); ylim([400 1600]);
+    axis square; % Force square aspect ratio
+    legend('Location', 'northwest', 'FontSize', 10);
+end
+
+saveas(fig, fullfile(out_dir, 'plots', 'Correlation_Plot_T1.png'));
+fprintf('Done. Results saved to %s\n', out_dir);

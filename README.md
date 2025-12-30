@@ -1,93 +1,125 @@
-# qmri-uq
+# Dictionary-Based MRI Uncertainty Quantification
 
+This repository contains the MATLAB implementation for **Uncertainty Quantification (UQ) in Dictionary-Based Quantitative MRI**. It provides unified solvers for Likelihood Ratio Test (LRT) and Bayesian methods to estimate parameter confidence intervals (CIs) alongside standard quantitative maps.
 
+The code reproduces the numerical simulations and phantom validation experiments described in the associated paper.
 
-## Getting started
+## Repository Structure
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+The repository is organized as follows:
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+```text
+.
+├── data/                       # Input data (must be populated with .mat files)
+│   ├── simulation_phantom/     # Data for numerical simulations (header, contrast)
+│   ├── phantom_t1/             # T1 phantom scans (LLR/NUFFT) and reference maps
+│   ├── phantom_t2/             # T2 phantom scans (8192/384/192 views) and references
+│   └── dictionaries/           # Pre-computed dictionaries (TE/PC space, T1/T2)
+│
+├── matlab_src/                 # Source code
+│   ├── run_simulation.m        # Main script for Numerical Simulations (Fig. 2)
+│   ├── run_phantom_t1.m        # Main script for T1 Phantom Validation
+│   ├── run_phantom_t2.m        # Main script for T2 Phantom Validation
+│   │
+│   ├── utils/                  # Core solvers and helper functions
+│   │   ├── fit_mri_params_lrt.m        # Unified Frequentist (LRT) Solver
+│   │   ├── fit_mri_params_bayesian.m   # Unified Bayesian Solver
+│   │   ├── estimateNoiseCovariance.m   # Noise covariance estimation
+│   │   ├── save_t1_img.m / save_t2_img.m # Image export helpers
+│   │   └── ...
+│   │
+│   └── qmri_cmaps/             # Colormap utilities
+│       └── relaxationColorMap.m
+│
+└── output/                     # Generated results (created automatically)
+    ├── simulation_results/
+    ├── phantom_t1_results/
+    └── phantom_t2_results/
 
 ```
-cd existing_repo
-git remote add origin https://coegit.engr.arizona.edu/altbach-bilgin-lab/qmri-uq.git
-git branch -M main
-git push -uf origin main
-```
 
-## Integrate with your tools
+## Setup & Requirements
 
-- [ ] [Set up project integrations](https://coegit.engr.arizona.edu/altbach-bilgin-lab/qmri-uq/-/settings/integrations)
+1. **MATLAB:** The code was developed and tested in MATLAB R2025a (or compatible versions).
+2. **Pathing:** The scripts automatically add the `utils` and `qmri_cmaps` folders to the path relative to `matlab_src`. Ensure you run the scripts from within the `matlab_src` folder or keep the folder structure intact.
+3. **Data:** Ensure the `data/` directory contains the required `.mat` files (dictionaries, contrast images, and headers) before running experiments.
 
-## Collaborate with your team
-
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+---
 
 ## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### 1. Numerical Simulations (`run_simulation.m`)
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Reproduces the Monte Carlo simulations (Figure 2 in the paper) to evaluate CI coverage and interval width under controlled noise.
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+* **Scenarios:** Loops through **TE vs. PC** subspace contrasts and **Free vs. Restricted** B1 mapping.
+* **Configuration:**
+* `SNR_dB`: Signal-to-Noise Ratio (default: 15 dB).
+* `N_sim`: Number of Monte Carlo realizations (default: 1000).
+* `use_identity_cov`: Set to `true` to test the "i.i.d. noise" failure mode.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+* **Output:** Saves CSV statistics and combined "Master" plots (Coverage & Size) to `output/simulation_results/`.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+### 2. T2 Phantom Validation (`run_phantom_t2.m`)
 
-## License
-For open source projects, say how it is licensed.
+Validates T2 mapping uncertainty on phantom data across different acceleration factors.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+* **Scenarios:**
+* **Acquisitions:** 8192-view (NUFFT Reference), 384-view (LLR), 192-view (LLR).
+* **B1 Constraints:** "Free" (Joint estimation) vs. "Range" (Restricted to ±10% of measured B1).
+
+
+* **Output:**
+* **Images:** T2 maps and Uncertainty maps (PNG/TIFF) in `output/phantom_t2_results/images/`.
+* **Plots:** Square correlation plots comparing estimated T2 vs. Gold Standard SESE T2.
+
+
+
+### 3. T1 Phantom Validation (`run_phantom_t1.m`)
+
+Validates T1 mapping uncertainty using Inversion Recovery (IR) sequences with retrospective acceleration.
+
+* **Scenarios:**
+* **1-Meas LLR:** Single measurement reconstructed in Principal Component (PC) space.
+* **16-Meas NUFFT:** 16 averages reconstructed in Time (TI) space.
+* **Truncation:** Retrospective acceleration by using only the first 50, 30, or 10 TIs.
+
+
+* **Output:**
+* **Images:** T1 maps and Uncertainty maps in `output/phantom_t1_results/images/`.
+* **Plots:** Correlation plots comparing Estimated T1 vs. Reference SEIR T1.
+
+
+
+---
+
+## Key Configuration Options
+
+All three scripts include a standard configuration block at the top:
+
+* **`use_identity_cov` (boolean):**
+* `false` (Default): Estimates the noise covariance matrix empirically from the data background.
+* `true`: Forces the use of an Identity matrix. This is used to demonstrate failure modes when noise correlations are ignored.
+* *Note:* When `true`, output folders are suffixed with `_identity` (e.g., `phantom_t2_results_identity`) to prevent overwriting valid results.
+
+
+* **`alpha_lvl`:** Significance level for Confidence Intervals (default `0.05` for 95% CIs).
+
+## Core Solvers (`matlab_src/utils/`)
+
+The repository relies on two unified solver functions that handle both T1 and T2 mapping:
+
+1. **`fit_mri_params_lrt(data, sigma, D, options)`**:
+* Implements the **Log-Likelihood Ratio Test**.
+* Returns Maximum Likelihood Estimates (MLE) and profile likelihood-based Confidence Intervals.
+
+
+2. **`fit_mri_params_bayesian(data, sigma, D, options)`**:
+* Implements **Bayesian Inversion** with numerical integration.
+* Returns Marginal Posterior means (Point Estimates) and Credible Intervals.
+
+
+
+Both solvers accept a dictionary structure `D` containing signal atoms and a lookup table, making them agnostic to the specific physics (T1 vs. T2) being modeled.
+
