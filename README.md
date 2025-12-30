@@ -40,7 +40,7 @@ The repository is organized as follows:
 
 ## Setup & Requirements
 
-1. **MATLAB:** The code was developed and tested in MATLAB R2025a (or compatible versions).
+1. **MATLAB:** The code was developed and tested in MATLAB R2020a.
 2. **Pathing:** The scripts automatically add the `utils` and `qmri_cmaps` folders to the path relative to `matlab_src`. Ensure you run the scripts from within the `matlab_src` folder or keep the folder structure intact.
 3. **Data:** Ensure the `data/` directory contains the required `.mat` files (dictionaries, contrast images, and headers) before running experiments.
 
