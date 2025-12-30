@@ -137,48 +137,76 @@ The repository relies on two unified solver functions that handle both T1 and T2
 Both solvers accept a dictionary structure `D` containing signal atoms and a lookup table, making them agnostic to the specific physics (T1 vs. T2) being modeled.
 
 
-
+```markdown
 ## Python Implementation
 
-We provide a Python translation of the simulation pipeline to ensure cross-platform reproducibility. There may be some small discrepancies in results due to implementation differences, but overall the two versions provide similar results
+We provide a Python translation of the simulation and phantom validation pipelines to ensure cross-platform reproducibility.
 
-1. Prerequisites
+### Repository Structure (Python)
 
-Ensure you have Miniconda or an equivalent Python environment installed.
-2. Setup Environment
+The Python source code is organized as follows:
+
+```text
+├── python_src/                 # Python implementation
+│   ├── run_simulation.py       # Main script for Numerical Simulations
+│   ├── run_phantom_t1.py       # Main script for T1 Phantom Validation
+│   ├── run_phantom_t2.py       # Main script for T2 Phantom Validation
+│   ├── solvers.py              # Unified LRT and Bayesian solvers
+│   └── utils.py                # Helper functions (IO, stats, plotting)
+
+```
+
+### 1. Prerequisites
+
+Ensure you have [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or an equivalent Python environment installed.
+
+### 2. Setup Environment
 
 Navigate to the repository root and create the environment:
-Bash
 
+```bash
 conda env create -f environment.yml
 conda activate mri_uq
 
-3. Usage
+```
 
-All scripts should be run from the python_src directory or ensure that directory is in your PYTHONPATH.
-Numerical Simulations
+### 3. Usage
+
+All scripts should be run from the `python_src` directory or ensure that directory is in your PYTHONPATH.
+
+#### **Numerical Simulations**
 
 Reproduces the Monte Carlo simulations (similar to Figure 2).
-Bash
 
+```bash
 python python_src/run_simulation.py
 
-    Output: Statistics and plots saved to python_output/simulation_results/.
+```
 
-T2 Phantom Validation
+* **Output:** Statistics and plots saved to `python_output/simulation_results/`.
+
+#### **T2 Phantom Validation**
 
 Runs the validation on T2 phantom data across 8192, 384, and 192 views.
-Bash
 
+```bash
 python python_src/run_phantom_t2.py
 
-    Output: T2 maps, Uncertainty maps, and correlation plots saved to python_output/phantom_t2_results/.
+```
 
-T1 Phantom Validation
+* **Output:** T2 maps, Uncertainty maps, and correlation plots saved to `python_output/phantom_t2_results/`.
+
+#### **T1 Phantom Validation**
 
 Runs the validation on T1 phantom data (1-Meas LLR vs 16-Meas NUFFT) with retrospective acceleration.
-Bash
 
+```bash
 python python_src/run_phantom_t1.py
 
-    Output: T1 maps, Uncertainty maps, and correlation plots saved to python_output/phantom_t1_results/.
+```
+
+* **Output:** T1 maps, Uncertainty maps, and correlation plots saved to `python_output/phantom_t1_results/`.
+
+```
+
+```
