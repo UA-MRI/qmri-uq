@@ -137,7 +137,6 @@ The repository relies on two unified solver functions that handle both T1 and T2
 Both solvers accept a dictionary structure `D` containing signal atoms and a lookup table, making them agnostic to the specific physics (T1 vs. T2) being modeled.
 
 
-```markdown
 ## Python Implementation
 
 We provide a Python translation of the simulation and phantom validation pipelines to ensure cross-platform reproducibility.
