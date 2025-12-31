@@ -223,3 +223,5 @@ python python_src/run_phantom_t1.py
 
 * **Output:** T1 maps, Uncertainty maps, and correlation plots saved to `python_output/phantom_t1_results/`.
 
+## Acknowledgements
+* Portions of the reconstruction code were inspired by/adapted from the implementation by Selma Metzner (PTB), 2021. [https://gitlab1.ptb.de/selmametzner/bayesian-uncertainty-quantification-for-magentic-resonance-fingerprinting]

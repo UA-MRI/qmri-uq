@@ -22,6 +22,21 @@ function [maps, stats] = fit_mri_params_bayesian(data, sigma, D, options)
 % OUTPUTS:
 %   maps    - Struct with fields .q, .q_map, .B1 (Point Estimates).
 %   stats   - Struct with fields .q_ci, .q_std, .B1_std.
+%
+%
+% This function includes logic adapted from code by Selma Metzner (PTB), 2021.
+%
+% Original License:
+% copyright Selma Metzner (PTB) 2021
+% This software is licensed under the BSD-like license:
+% Redistribution and use in source and binary forms, with or without
+% modification, are permitted provided that the following conditions are met:
+%
+% Redistributions of source code must retain the above copyright notice,
+% this list of conditions and the following disclaimer.
+% Redistributions in binary form must reproduce the above copyright
+% notice, this list of conditions and the following disclaimer in
+% the documentation and/or other materials provided with the distribution.
 
 %% 1. Default Options
 if nargin < 4, options = struct(); end

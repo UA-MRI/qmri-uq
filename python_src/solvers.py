@@ -155,6 +155,20 @@ def fit_mri_params_lrt(data, sigma, D, options=None):
     return {}, res
 
 def fit_mri_params_bayesian(data, sigma, D, options=None):
+    # This function includes logic adapted from code by Selma Metzner (PTB), 2021.
+    #
+    # Original License:
+    # copyright Selma Metzner (PTB) 2021
+    # This software is licensed under the BSD-like license:
+    # Redistribution and use in source and binary forms, with or without
+    # modification, are permitted provided that the following conditions are met:
+    #
+    # Redistributions of source code must retain the above copyright notice,
+    # this list of conditions and the following disclaimer.
+    # Redistributions in binary form must reproduce the above copyright
+    # notice, this list of conditions and the following disclaimer in
+    # the documentation and/or other materials provided with the distribution.
+    
     if options is None: options = {}
     alpha = options.get('alpha', 0.05)
     
