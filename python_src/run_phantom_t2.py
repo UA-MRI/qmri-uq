@@ -1,11 +1,17 @@
-# run_phantom_t2.py
+"""
+T2 Phantom Validation Script
+
+Loads T2-weighted phantom data and compares mapping methods against a 
+Single-Echo Spin-Echo (SESE) reference. Evaluates performance under:
+- Free B1 fitting
+- Constrained B1 fitting (using external maps)
+"""
 import os
 import time
 import numpy as np
 import matplotlib
-matplotlib.use('Agg') # Force non-interactive backend for cluster usage
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import pdb
 
 from utils import load_mat, estimate_noise_covariance, crop_image, extract_roi_stats, save_map
 from solvers import fit_mri_params_lrt, fit_mri_params_bayesian
@@ -91,6 +97,7 @@ def main():
                 
                 if mode == 'Range':
                     ops['b1_mode'] = 'range'
+                    # Constrain B1 search to +/- 10% of the measured map
                     b1_stack = np.stack([0.9 * tfl_b1, 1.1 * tfl_b1], axis=-1)
                     ops['b1_input'] = b1_stack
                 else:
@@ -137,8 +144,6 @@ def main():
                 
         except Exception as e:
             print(f"Skipping {scan['name']} due to error: {e}")
-            import traceback
-            traceback.print_exc()
 
     generate_plots(plot_db, scans, b1_modes)
 

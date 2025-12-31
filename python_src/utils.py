@@ -13,10 +13,12 @@ CMAP_DIR = os.path.join(REPO_ROOT, 'data', 'colormaps')
 
 def load_mat(filename):
     """
-    Robustly loads .mat files.
-    - First tries scipy.io.loadmat (fast, compatible with v7).
-    - If that fails (e.g., v7.3), tries mat73.
-    - aggressively filters 'unsupported type' errors if possible.
+    Robustly loads .mat files into Python dictionaries.
+    
+    Strategies:
+    1. Scipy.io.loadmat: Fast, supports MATLAB v4-v7.
+    2. mat73: Fallback for MATLAB v7.3 (HDF5-based) files.
+    3. Cleanup: Recursively converts MATLAB structs -> Python dicts.
     """
     data = None
     try:
@@ -42,19 +44,25 @@ def load_mat(filename):
         return item
 
     if isinstance(data, dict):
-        # Filter internal keys
+        # Filter internal keys (__header__, etc)
         return {k: _clean_item(v) for k, v in data.items() if not k.startswith('__')}
     
-    # If mat73 returned a non-dict (rare)
     return _clean_item(data)
 
 def regularize_covariance(sigma, max_cond=500):
+    """
+    Applies Tikhonov regularization to a covariance matrix.
+    
+    Ensures the condition number does not exceed `max_cond` by adding 
+    a diagonal loading factor (lambda * I). This is critical for 
+    inverting covariance matrices estimated from few background samples.
+    """
     vals, vecs = np.linalg.eigh(sigma)
     
     min_eig = np.min(vals)
     max_eig = np.max(vals)
     
-    # Safety floor to match MATLAB's non-negative assumption if numerical noise occurs
+    # Safety floor to match MATLAB's non-negative assumption
     if min_eig <= 0: min_eig = 1e-15
         
     current_cond = max_eig / min_eig
@@ -68,6 +76,10 @@ def regularize_covariance(sigma, max_cond=500):
     return sigma_reg
 
 def estimate_noise_covariance(data, frame_size=10):
+    """
+    Estimates noise covariance from background voxels.
+    Assumes the image has a frame_size border of pure noise.
+    """
     nx, ny, nt = data.shape
     fs = frame_size if isinstance(frame_size, int) else frame_size[0]
     
@@ -79,6 +91,7 @@ def estimate_noise_covariance(data, frame_size=10):
     return regularize_covariance(sigma, 500)
 
 def crop_image(img, target_shape):
+    """Crops or pads an image to the target shape (Center aligned)."""
     nx, ny = img.shape[:2]
     nnx, nny = target_shape
     
@@ -105,6 +118,10 @@ def crop_image(img, target_shape):
     return img[xrange, yrange, ...]
 
 def extract_roi_stats(roi_masks, ref_map, lrt_res, bayes_res):
+    """
+    Extracts mean values and confidence interval widths from regions of interest.
+    Used for generating correlation plots.
+    """
     stats = {k: [] for k in ['ref_mean', 'lrt_mean', 'lrt_ci_low', 'lrt_ci_high', 
                              'bayes_mean', 'bayes_ci_low', 'bayes_ci_high']}
     
@@ -137,6 +154,7 @@ def extract_roi_stats(roi_masks, ref_map, lrt_res, bayes_res):
 
 # --- Colormap Helpers ---
 def get_uq_colormap():
+    """Returns a custom MATLAB-style colormap for Uncertainty Maps."""
     N = 256
     r = np.linspace(0.267, 0.999, N)
     g = np.linspace(0.005, 0.893, N)
@@ -145,6 +163,10 @@ def get_uq_colormap():
     return ListedColormap(colors, name='matlab_uq')
 
 def color_log_remap(ori_cmap, lo, up):
+    """
+    Remaps a colormap to logarithmic scaling between `lo` and `up`.
+    Useful for visualizing relaxation parameters with high dynamic range.
+    """
     assert up > 0 and up > lo
     n_map = ori_cmap.shape[0]
     e_inv = np.exp(-1.0)
@@ -172,6 +194,10 @@ def color_log_remap(ori_cmap, lo, up):
     return log_cmap
 
 def relaxation_colormap(maptype, x, lo, up):
+    """
+    Loads custom colormaps (Lipari/Navia) for T1/T2 visualization.
+    Falls back to gray if files are missing.
+    """
     if maptype in ['T1', 'R1']:
         fname = os.path.join(CMAP_DIR, 'lipari.npy')
     else:
@@ -190,6 +216,7 @@ def relaxation_colormap(maptype, x, lo, up):
     return x_clip, ListedColormap(lut_cmap)
 
 def save_map(data, path, title, rng, mask=None, map_type='T1'):
+    """Saves a map to PNG and TIFF formats with appropriate masking."""
     if mask is None: mask = np.ones_like(data)
     masked_data = data * mask
     lo, up = rng

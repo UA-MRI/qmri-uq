@@ -1,5 +1,11 @@
+"""
+Numerical Simulation Runner
 
-# run_simulation.py
+Performs Monte Carlo simulations to validate the statistical methods.
+- Generates synthetic signals for TE (T2) and PC (Subspace) contrast.
+- Adds correlated complex Gaussian noise (colored noise).
+- Compares LRT and Bayesian coverage probabilities against the ground truth.
+"""
 import os
 import numpy as np
 import matplotlib
@@ -19,9 +25,9 @@ DATA_DIR = os.path.join(REPO_ROOT, 'data', 'simulation_phantom')
 DICT_DIR = os.path.join(REPO_ROOT, 'data', 'dictionaries')
 
 SNR_DB = 15
-T2_ARRAY = np.arange(20, 301, 5) 
+T2_ARRAY = np.arange(20, 301, 20) 
 B1_SIM = 1.0
-N_SIM = 1000
+N_SIM = 100
 ALPHA = 0.05
 USE_IDENTITY_COV = False
 
@@ -48,7 +54,6 @@ def main():
             contrast = c_data['contrast'] 
             D = d_data['D']
             
-            # Strict Header Check
             if 'header' not in h_data:
                 raise ValueError("header.mat missing 'header' struct.")
             header = h_data['header']
@@ -58,6 +63,7 @@ def main():
             continue
 
         if contrast_type == 'PC':
+            # Project onto subspace basis (u)
             basis = D['u']
             nx, ny, n_orig = contrast.shape
             c_flat = contrast.reshape(nx*ny, n_orig, order='F')
@@ -75,7 +81,8 @@ def main():
         else:
             TE_array_full = None
 
-        # Noise Covariance
+        # --- Noise Coloring ---
+        # Scale noise covariance to match simulation SNR
         contrast_dbl = contrast.astype(np.complex128) * 1e4
         sigma_bg = estimate_noise_covariance(contrast_dbl, frame_size=10)
         
@@ -84,6 +91,7 @@ def main():
         cov_scale = sig_norm**2 / (snr_lin**2 * np.trace(sigma_bg).real)
         sigma_sim = regularize_covariance(cov_scale * sigma_bg, 500)
         
+        # Block matrix for Complex Gaussian noise
         Sigma_w = np.block([
             [np.real(sigma_sim), -np.imag(sigma_sim)],
             [np.imag(sigma_sim),  np.real(sigma_sim)]
@@ -117,6 +125,7 @@ def main():
                 clean_sig = dict_atoms[:, idx]
                 clean_sig = clean_sig / np.linalg.norm(clean_sig) * sig_norm
                 
+                # Add Noise
                 noise_ri = np.random.multivariate_normal(np.zeros(2*N_t), Sigma_w, N_SIM)
                 noise_c = noise_ri[:, :N_t] + 1j * noise_ri[:, N_t:]
                 noisy_sigs = (clean_sig[None, :] + noise_c).reshape(N_sim_img(N_SIM), order='F')

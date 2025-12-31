@@ -1,4 +1,11 @@
-# run_phantom_t1.py
+"""
+T1 Phantom Validation Script
+
+Performs T1 mapping and uncertainty quantification on phantom data.
+Experiments:
+1. 1-Meas LLR (PC Space): Low-Rank subspace reconstruction.
+2. 16-Meas NUFFT (TI Space): Standard time-resolved reconstruction.
+"""
 import os
 import time
 import numpy as np
@@ -23,6 +30,7 @@ OUT_DIR = os.path.join(REPO_ROOT, 'python_output', 'phantom_t1_results_identity'
 os.makedirs(os.path.join(OUT_DIR, 'images'), exist_ok=True)
 os.makedirs(os.path.join(OUT_DIR, 'plots'), exist_ok=True)
 
+# Define experiments (Scans vs Truncation Levels)
 experiments = [
     {
         'name': '1Meas_LLR', 'type': 'PC',
@@ -86,14 +94,12 @@ def main():
                 _, bayes_res = fit_mri_params_bayesian(contrast, sigma, D, ops)
                 print(f"     Bayes: {time.time()-t0:.2f}s")
                 
-                # --- Reshape Results (order='F') ---
+                # --- Reshape Results (order='F' for MATLAB compatibility) ---
                 nx, ny = FOV
                 
-                # Reshape Point Estimates
                 lrt_t1 = lrt_res['q'].reshape(nx, ny, order='F')
                 bayes_t1 = bayes_res['q'].reshape(nx, ny, order='F')
                 
-                # Reshape CIs
                 lrt_ci = lrt_res['q_ci'].reshape(nx, ny, 2, order='F')
                 bayes_ci = bayes_res['q_ci'].reshape(nx, ny, 2, order='F')
                 
@@ -111,8 +117,7 @@ def main():
                 save_map(bayes_uq_img, os.path.join(OUT_DIR, 'images', f"{base}_Bayes_Unc.png"), 
                          f"{base.replace('_',' ')} Bayes Unc", RNG_UQ, disp_mask, 'UQ')
 
-                # --- Extract Stats ---
-                # Pass correct shapes to extractor
+                # --- Extract Stats for Plots ---
                 lrt_struct = {'q': lrt_t1, 'q_ci': lrt_ci}
                 bayes_struct = {'q': bayes_t1, 'q_ci': bayes_ci}
                 
@@ -120,9 +125,7 @@ def main():
                 plot_db[(exp['name'], n_ti)] = stats
                 
             except Exception as e:
-                print(f"     Failed: {e}")
-                import traceback
-                traceback.print_exc()
+                print(f"     Failed processing {fname}: {e}")
                 continue
 
     generate_plots(plot_db, experiments)
@@ -133,7 +136,6 @@ def generate_plots(db, experiments):
     colors = ['tab:blue', 'tab:orange', 'tab:green']
     markers = ['o', 's', '^']
     
-    # Create one Figure per Experiment
     for exp in experiments:
         fig = plt.figure(figsize=(12, 6))
         methods = ['LRT', 'Bayesian']
@@ -149,7 +151,6 @@ def generate_plots(db, experiments):
                 res = db[key]
                 x = res['ref_mean']
                 
-                # Switch Data Source
                 if method_key == 'LRT':
                     y = res['lrt_mean']
                     ci_lo = res['lrt_ci_low']
@@ -159,7 +160,6 @@ def generate_plots(db, experiments):
                     ci_lo = res['bayes_ci_low']
                     ci_hi = res['bayes_ci_high']
                 
-                # Plot Errors and Points
                 plt.vlines(x, ci_lo, ci_hi, colors=colors[t_i], alpha=0.5, linewidth=1.5)
                 plt.scatter(x, y, color=colors[t_i], marker=markers[t_i], 
                             label=f"{n_ti} TIs", zorder=5)
