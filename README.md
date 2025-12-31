@@ -4,7 +4,7 @@ This repository contains the MATLAB implementation for **Uncertainty Quantificat
 
 The code reproduces the numerical simulations and phantom validation experiments presented at the ISMRM Workshop on Data Sampling and Image Reconstruction in January, 2026. A longer form journal article is in preparation. 
 
-If you use this code, please cite it in the following way:
+If you are reading this, the journal has not yet been published. Keep an eye out for it, but in the meantime, please cite the following abstract:
 ```bibtex
 @inproceedings{ISMRM_Sedona_2026,
   author    = {Toner, Brian and Goerke, Ute and Ahanonu, Eze and Johnson, Kevin and Deshpande, Vibhas and Wu, Holden H and Altbach, M and Bilgin, A},
