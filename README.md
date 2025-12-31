@@ -17,6 +17,7 @@ If you use this code, please cite it in the following way:
   publisher = {International Society for Magnetic Resonance in Medicine (ISMRM)},
   note      = {Abstract \#00187}
 }
+```
 
 1. B. Toner, U. Goerke, E. Ahanonu, K. Johnson, V. Deshpande, H. H. Wu, M. Altbach, and A. Bilgin, "Methods for uncertainty quantification in dictionary matching to advance interpretable quantitative MRI," in *Proc. ISMRM Workshop Data Sampling Image Reconstr.*, Sedona, AZ, USA, Jan. 11–14, 2026, Abstract 00187.
 
