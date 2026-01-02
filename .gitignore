@@ -6,12 +6,13 @@
 __pycache__/
 *.pyc
 
-# Editor temp files
+# Editor temp files and Emacs autosaves
 *~
+\#*#
 
-# Output directories (matches matlab_output, python_output, etc.)
+# Output directories
 *_output/
 
-# OS specific (Replace ".*" with these safer specific ones)
+# OS/Env specific (Safer than using .*)
 .DS_Store
 .env
