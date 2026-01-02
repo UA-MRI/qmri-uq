@@ -8,7 +8,7 @@ __pycache__/
 
 # Editor temp files and Emacs autosaves
 *~
-\#*#
+\#*
 
 # Output directories
 *_output/
