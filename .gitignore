@@ -1,0 +1,17 @@
+# Archives
+*.tar
+*.zip
+
+# Python temporary files
+__pycache__/
+*.pyc
+
+# Editor temp files
+*~
+
+# Output directories (matches matlab_output, python_output, etc.)
+*_output/
+
+# OS specific (Replace ".*" with these safer specific ones)
+.DS_Store
+.env
