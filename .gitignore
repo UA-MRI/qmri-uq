@@ -16,3 +16,7 @@ __pycache__/
 # OS/Env specific (Safer than using .*)
 .DS_Store
 .env
+.\#*
+
+# debugging file
+tmp.txt
