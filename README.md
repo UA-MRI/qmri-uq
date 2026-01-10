@@ -11,7 +11,7 @@ If you are reading this, the journal article has not been published yet. Keep an
   title     = {Methods for Uncertainty Quantification in Dictionary Matching to Advance Interpretable Quantitative MRI},
   booktitle = {Proceedings of the ISMRM Workshop on Data Sampling and Image Reconstruction},
   year      = {2026},
-  month     = {Jan.},
+  month     = {January},
   days      = {11--14},
   address   = {Sedona, AZ, USA},
   publisher = {International Society for Magnetic Resonance in Medicine (ISMRM)},
@@ -183,6 +183,7 @@ Navigate to the repository root and create the environment:
 ```bash
 conda env create -f environment.yml
 conda activate mri_uq
+cd python_src
 
 ```
 
@@ -195,7 +196,7 @@ All scripts should be run from the `python_src` directory or ensure that directo
 Reproduces the Monte Carlo simulations (similar to Figure 2).
 
 ```bash
-python python_src/run_simulation.py
+python run_simulation.py
 
 ```
 
@@ -206,7 +207,7 @@ python python_src/run_simulation.py
 Runs the validation on T2 phantom data across 8192, 384, and 192 views.
 
 ```bash
-python python_src/run_phantom_t2.py
+python run_phantom_t2.py
 
 ```
 
@@ -217,7 +218,7 @@ python python_src/run_phantom_t2.py
 Runs the validation on T1 phantom data (1-Meas LLR vs 16-Meas NUFFT) with retrospective acceleration.
 
 ```bash
-python python_src/run_phantom_t1.py
+python run_phantom_t1.py
 
 ```
 
