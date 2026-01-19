@@ -25,9 +25,9 @@ dict_dir   = fullfile(repo_root, 'data', 'dictionaries');
 rng(2025); % Set seed for reproducibility
 
 SNR_dB = 15;                  % Target Signal-to-Noise Ratio (dB)
-T2_array = 20:1:300;          % Range of Ground Truth T2 values (ms)
+T2_array = 20:20:300;          % Range of Ground Truth T2 values (ms)
 B1_sim   = 1.0;               % Ground Truth B1 value
-N_sim    = 1000;              % Number of Monte Carlo realizations per T2
+N_sim    = 100;              % Number of Monte Carlo realizations per T2
 alpha_lvl = 0.05;             % Significance level (e.g., 0.05 for 95% CI)
 
 % -- Failure Mode Testing --
