@@ -5,10 +5,6 @@
 %  This script reproduces the numerical simulation experiments.
 %  It evaluates the performance of LRT and Bayesian methods.
 %
-%  UPDATES:
-%  - Decoupled noise generation from model fitting.
-%  - Simulation always uses realistic background covariance.
-%  - Fitting uses Identity or True covariance based on 'use_identity_cov'.
 
 restoredefaultpath;
 clear; clc; close all;
