@@ -44,6 +44,7 @@ if ~isfield(options, 'alpha'), options.alpha = 0.05; end
 if ~isfield(options, 'b1_mode'), options.b1_mode = 'none'; end
 if ~isfield(options, 'te_truncation'), options.te_truncation = false; end
 if ~isfield(options, 'trunc_factor'), options.trunc_factor = 3.0; end
+if ~isfield(options, 'bayes_ci'), options.bayes_ci = true; end
 
 [nx, ny, nt] = size(data);
 N_voxels = nx * ny;
@@ -85,7 +86,7 @@ for r_idx = 1:size(unique_ranges,1)
     
     % --- Initial Estimate (Cosine Similarity) ---
     X_sub = Xobs(:, v_idx);
-    X_norm = X_sub ./ vecnorm(X_sub, 2, 1);
+    X_norm = X_sub ./ (vecnorm(X_sub, 2, 1) + eps);
     [~, best_atom] = max(abs(X_norm' * conj(D_sub)), [], 2);
     
     % Store Cosine Sim as the primary 'q'
@@ -97,6 +98,7 @@ for r_idx = 1:size(unique_ranges,1)
     if options.te_truncation
         cutoff_times = q_est * options.trunc_factor;
         trunc_lengths = sum(options.te_array(:)' <= cutoff_times, 2);
+        trunc_lengths = max(trunc_lengths, min(3, nt));
     else
         trunc_lengths = repmat(nt, length(v_idx), 1);
     end
@@ -124,7 +126,11 @@ for r_idx = 1:size(unique_ranges,1)
         
         % 3. Calculate Statistics using Greedy CI Expansion
         % Anchor the CI to the MAP estimate, NOT the Cosine Similarity
-        [lb, ub] = calc_ci_greedy(sub_q_grid, p_q, map_vals, 1 - options.alpha);
+        if options.bayes_ci
+            [lb, ub] = calc_ci_greedy(sub_q_grid, p_q, map_vals, 1 - options.alpha);
+        else
+            lb = zeros(size(final_v_idx)); ub = zeros(size(final_v_idx)); 
+        end
         
         % Standard Deviation (Moment matching)
         [~, ~, std_q] = calc_stats_moments(sub_q_grid, p_q);

@@ -1,5 +1,5 @@
 
-function [] = save_t1_img(t1map, save_path, img_title, t1_range, mask)
+function [] = save_t1_img(t1map, save_path, img_title, t1_range, mask, fontsize)
 if nargin < 3
     img_title = '';
 end
@@ -11,13 +11,17 @@ end
 if nargin < 5
     mask = ones(size(t1map)); 
 end
+if nargin < 6
+    fontsize = 12;
+end
+
 t1min = t1_range(1);
 t1max = t1_range(2);
 
 t1map = mask .* t1map; 
 % Display the image using MATLAB
 figure;
-[imClip, cmap] = plot_t1(t1map, t1min, t1max);
+[imClip, cmap] = plot_t1(t1map, t1min, t1max, fontsize);
 title(img_title);
 saveas(gcf, save_path);
 close all
@@ -29,11 +33,11 @@ end
 
 
 
-function [imClip, rgb_vec] = plot_t1(t2map, loLev, upLev)
+function [imClip, rgb_vec] = plot_t1(t2map, loLev, upLev, fontsize)
 [imClip, rgb_vec] = relaxationColorMap('T1', t2map, loLev, upLev);
 % Display the image using MATLAB
 imshow(imClip, 'DisplayRange', [loLev, upLev], 'InitialMagnification', 'fit');
 colormap(rgb_vec); 
 cb = colorbar;
-% cb.FontSize = 30; 
+cb.FontSize = fontsize; 
 end

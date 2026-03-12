@@ -20,11 +20,16 @@ reshapedData = reshape(data, rows * cols, n_t);
 % Create mask for background (frame border)
 backgroundMask = true(rows, cols);
 if length(frame_size) == 1
-    fs_x = frame_size; fs_y = frame_size; 
-else
-    fs_x = frame_size(1); fs_y = frame_size(2); 
+    fs_r1 = frame_size; fs_c1 = frame_size; 
+    fs_r2 = frame_size; fs_c2 = frame_size; 
+elseif length(frame_size) == 2
+    fs_r1 = frame_size(1); fs_c1 = frame_size(2); 
+    fs_r2 = frame_size(1); fs_c2 = frame_size(2); 
+elseif length(frame_size) == 4
+    fs_r1 = frame_size(1); fs_r2 = frame_size(2); 
+    fs_c1 = frame_size(3); fs_c2 = frame_size(4); 
 end
-backgroundMask((fs_x+1):(rows-fs_x), (fs_y+1):(cols-fs_y)) = false;
+backgroundMask((fs_r1+1):(rows-fs_r2), (fs_c1+1):(cols-fs_c2)) = false;
 
 % Extract background voxels
 backgroundVoxels = reshapedData(backgroundMask(:), :);

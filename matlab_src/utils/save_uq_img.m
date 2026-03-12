@@ -1,5 +1,5 @@
 
-function [] = save_uq_img(uqmap, save_path, img_title, uq_range, mask)
+function [] = save_uq_img(uqmap, save_path, img_title, uq_range, mask, fontsize)
 if nargin < 3
     img_title = '';
 end
@@ -11,6 +11,10 @@ end
 if nargin < 5
     mask = ones(size(uqmap)); 
 end
+if nargin < 6
+    fontsize = 12;
+end
+
 uqmin = uq_range(1);
 uqmax = uq_range(2);
 % Create a Viridis-like colormap manually
@@ -28,7 +32,7 @@ imshow(uqmap, [uqmin, uqmax], 'InitialMagnification', 'fit');
 colormap(ax, viridis);
 caxis([uqmin, uqmax]); 
 cb = colorbar;
-% cb.FontSize = 30; 
+cb.FontSize = fontsize; 
 title(img_title);
 saveas(gcf, save_path);
 close all

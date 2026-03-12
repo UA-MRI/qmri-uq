@@ -71,7 +71,7 @@ for r_idx = 1:size(unique_ranges,1)
     
     % --- Initial Estimate (Cosine Similarity) ---
     X_sub = Xobs(:, v_idx);
-    X_norm = X_sub ./ vecnorm(X_sub, 2, 1);
+    X_norm = X_sub ./ (vecnorm(X_sub, 2, 1) + eps);
     ip = X_norm' * conj(D_sub); 
     [~, best_atom] = max(abs(ip), [], 2);
     
@@ -84,6 +84,7 @@ for r_idx = 1:size(unique_ranges,1)
     if options.te_truncation
         cutoff_times = q_est * options.trunc_factor;
         trunc_lengths = sum(options.te_array(:)' <= cutoff_times, 2);
+        trunc_lengths = max(trunc_lengths, min(3, nt));
     else
         trunc_lengths = repmat(nt, length(v_idx), 1);
     end
