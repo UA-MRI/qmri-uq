@@ -41,8 +41,9 @@ dict_b1 = unique(D.lookup_table(:,1));
 b1_limits = get_b1_limits(options, dict_b1, N_voxels);
 
 %% 3. Prepare Outputs
-maps = struct('q', nan(N_voxels,1), 'B1', nan(N_voxels,1), ...
-              'q_mle', nan(N_voxels,1), 'B1_mle', nan(N_voxels,1));
+maps = struct('q', nan(N_voxels,1), 'B1', nan(N_voxels,1),...
+              'q_mle', nan(N_voxels,1), 'B1_mle', nan(N_voxels,1), ...
+               'M0', nan(N_voxels,1));
 stats = struct('q_ci', nan(N_voxels,2), 'B1_ci', nan(N_voxels,2));
 
 % Chi-Squared Threshold 
@@ -79,6 +80,7 @@ for r_idx = 1:size(unique_ranges,1)
     q_est = lut_sub(best_atom, 2);
     maps.q(v_idx) = q_est;
     maps.B1(v_idx) = lut_sub(best_atom, 1);
+    maps.M0(v_idx) = sum(conj(D_sub(:,best_atom)) .* X_sub, 1); 
     
     % --- Determine Truncation Lengths ---
     if options.te_truncation
@@ -159,6 +161,7 @@ end
 % Reshape results to image dimensions
 maps.q = reshape(maps.q, nx, ny);
 maps.B1 = reshape(maps.B1, nx, ny);
+maps.M0 = reshape(maps.M0, nx, ny);
 maps.q_mle = reshape(maps.q_mle, nx, ny);
 maps.B1_mle = reshape(maps.B1_mle, nx, ny);
 stats.q_ci = reshape(stats.q_ci, nx, ny, 2);
