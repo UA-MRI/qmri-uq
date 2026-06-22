@@ -1,25 +1,24 @@
 # Dictionary-Based MRI Uncertainty Quantification
 
-This repository contains the MATLAB implementation for **Uncertainty Quantification (UQ) in Dictionary-Based Quantitative MRI**. It provides unified solvers for Likelihood Ratio Test (LRT) and Bayesian methods to estimate parameter confidence intervals (CIs) alongside standard quantitative maps.
+This repository contains the MATLAB and Python implementations for the paper titled **Methods for Uncertainty Quantification in Dictionary Matching to Advance Reliability of Quantitative MRI** (https://doi.org/10.1002/mrm.70459). It provides unified solvers for Likelihood Ratio Test (LRT) and Bayesian methods to estimate parameter confidence intervals (CIs) alongside standard quantitative maps.
 
-The code reproduces the numerical simulations and phantom validation experiments presented at the ISMRM Workshop on Data Sampling and Image Reconstruction in January, 2026. A longer form journal article is in preparation. 
-
-If you are reading this, the journal article has not been published yet. Keep an eye out for it, but in the meantime, please cite the following abstract:
+If you use this package, please cite: 
 ```bibtex
-@inproceedings{ISMRM_Sedona_2026,
-  author    = {Toner, Brian and Goerke, Ute and Ahanonu, Eze and Johnson, Kevin and Deshpande, Vibhas and Wu, Holden H and Altbach, M and Bilgin, A},
-  title     = {Methods for Uncertainty Quantification in Dictionary Matching to Advance Interpretable Quantitative MRI},
-  booktitle = {Proceedings of the ISMRM Workshop on Data Sampling and Image Reconstruction},
-  year      = {2026},
-  month     = {January},
-  days      = {11--14},
-  address   = {Sedona, AZ, USA},
-  publisher = {International Society for Magnetic Resonance in Medicine (ISMRM)},
-  note      = {Abstract \#00187}
+@article{https://doi.org/10.1002/mrm.70459,
+author = {Toner, Brian and Goerke, Ute and Ahanonu, Eze and Johnson, Kevin and Deshpande, Vibhas and Wu, Holden H. and Altbach, Maria I. and Bilgin, Ali},
+title = {Methods for Uncertainty Quantification in Dictionary Matching to Advance Reliability of Quantitative MRI},
+journal = {Magnetic Resonance in Medicine},
+volume = {},
+number = {},
+pages = {},
+keywords = {quantitative MRI, uncertainty quantification},
+doi = {https://doi.org/10.1002/mrm.70459},
+url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.70459},
+eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/mrm.70459}
 }
 ```
 
-1. B. Toner, U. Goerke, E. Ahanonu, K. Johnson, V. Deshpande, H. H. Wu, M. Altbach, and A. Bilgin, "Methods for uncertainty quantification in dictionary matching to advance interpretable quantitative MRI," in *Proc. ISMRM Workshop Data Sampling Image Reconstr.*, Sedona, AZ, USA, Jan. 11–14, 2026, Abstract 00187.
+1. B. Toner, U. Goerke, E. Ahanonu, K. Johnson, V. Deshpande, H. H. Wu, M. I. Altbach, and A. Bilgin. “Methods for Uncertainty Quantification in Dictionary Matching to Advance Reliability of Quantitative MRI,” *Magnetic Resonance in Medicine* (2026): 1–16, https://doi.org/10.1002/mrm.70459.
 
 ## Repository Structure
 
